@@ -1,3 +1,10 @@
+import warnings
+warnings.filterwarnings("ignore")
+
+# Suppress TensorFlow protobuf warnings
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 import streamlit as st
 import av
 import numpy as np
