@@ -1,11 +1,7 @@
 streamlit
-opencv-python-headless
-numpy
 tensorflow
-keras
-pandas
-matplotlib
-av
-MTCNN
-webrtc_streamer 
-VideoTransformerBase
+pillow
+mtcnn
+numpy
+streamlit-webrtc
+opencv-python-headless
