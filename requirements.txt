@@ -3,5 +3,3 @@ tensorflow
 pillow
 mtcnn
 numpy
-streamlit-webrtc
-opencv-python-headless
