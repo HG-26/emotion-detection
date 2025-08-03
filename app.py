@@ -1,71 +1,44 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[3]:
-
-
-import cv2
+import streamlit as st
 import numpy as np
+from PIL import Image
+from mtcnn.mtcnn import MTCNN
 from tensorflow.keras.models import load_model
+import tensorflow as tf
 
 # Load trained model
 model = load_model("emotion_model.h5")
 
-# Emotion labels (same order as training)
-emotion_labels = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
+# Emotion labels
+EMOTIONS = ['Angry', 'Disgust', 'Fear', 'Happy', 'Sad', 'Surprise', 'Neutral']
 
-# Load Haar Cascade for face detection
-face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+# MTCNN face detector
+detector = MTCNN()
 
-# Open webcam
-cap = cv2.VideoCapture(0)
+st.set_page_config(page_title="Emotion Detection", layout="centered")
+st.title("🎭 Real-Time Emotion Detection (No OpenCV)")
 
-print("Press 'q' to quit.")
+uploaded_file = st.file_uploader("Upload an Image", type=["jpg", "jpeg", "png"])
 
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    # Convert to grayscale
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+if uploaded_file:
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Uploaded Image", use_column_width=True)
 
     # Detect faces
-    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.3, minNeighbors=5)
+    image_np = np.array(image)
+    faces = detector.detect_faces(image_np)
 
-    for (x, y, w, h) in faces:
-        roi_gray = gray[y:y+h, x:x+w]
-        roi_gray = cv2.resize(roi_gray, (48, 48))
-        roi = roi_gray.astype("float") / 255.0
-        roi = np.expand_dims(roi, axis=0)
-        roi = np.expand_dims(roi, axis=-1)  # Add channel dimension
+    if faces:
+        for face in faces:
+            x, y, w, h = face['box']
+            face_img = image_np[y:y+h, x:x+w]
+            face_img = Image.fromarray(face_img).resize((48, 48)).convert("L")
+            face_array = np.expand_dims(np.expand_dims(np.array(face_img) / 255.0, axis=-1), axis=0)
 
-        # Predict emotion
-        predictions = model.predict(roi)
-        label = emotion_labels[np.argmax(predictions)]
+            # Predict emotion
+            prediction = model.predict(face_array)
+            emotion = EMOTIONS[np.argmax(prediction)]
 
-        # Draw rectangle and label
-        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 255, 0), 2)
-        cv2.putText(frame, label, (x, y - 10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 0), 2)
-
-    cv2.imshow("Real-Time Emotion Detection", frame)
-
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
-
-
-# In[2]:
-
-
-get_ipython().system('pip install opencv-python')
-
-
-# In[ ]:
-
-
-
+            st.write(f"Detected Emotion: **{emotion}**")
+    else:
+        st.warning("No faces detected in the image.")
 
